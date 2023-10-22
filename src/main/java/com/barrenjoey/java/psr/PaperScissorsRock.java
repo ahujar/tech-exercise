@@ -1,64 +1,47 @@
 package com.barrenjoey.java.psr;
 
-import java.util.Scanner;
+import com.barrenjoey.java.psr.manager.GameManager;
+import com.barrenjoey.java.psr.model.game.GameContext;
+import com.barrenjoey.java.psr.service.*;
+import com.barrenjoey.java.psr.service.impl.PSRServiceImpl;
+import com.barrenjoey.java.psr.service.impl.PlayerServiceImpl;
+import com.barrenjoey.java.psr.service.impl.ResultPublisher;
+import com.barrenjoey.java.psr.service.impl.ScannerInputService;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PaperScissorsRock {
-
-    public static int playTheGame() {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Player1: Choose (p)aper, (s)cissors, (r)ock");
-        String player_1_move = scanner.nextLine();
-        System.out.println("Player2: Choose (p)aper, (s)cissors, (r)ock");
-        String player_2_move = scanner.nextLine();
-        switch (player_1_move.trim().toLowerCase()) {
-            case "p":
-                if ("p".equals(player_2_move)) {
-                    System.out.println("It's a tie!");
-                    return 0;
-                }
-                if ("s".equals(player_2_move)) {
-                    System.out.println("Player 2 wins");
-                    return 2;
-                } else if ("r".equals(player_2_move)) {
-                    System.out.println("Player 1 wins");
-                    return 1;
-                }
-                break;
-
-            case "s":
-                if ("p".equals(player_2_move)) {
-                    System.out.println("Player 1 wins");
-                    return 1;
-                }
-                if ("s".equals(player_2_move)) {
-                    System.out.println("It's a tie!");
-                    return 0;
-                } else if ("r".equals(player_2_move)) {
-                    System.out.println("Player 2 wins");
-                    return 2;
-                }
-                break;
-
-            case "r":
-                if ("p".equals(player_2_move)) {
-                    System.out.println("Player 2 wins");
-                    return 1;
-                }
-                if ("s".equals(player_2_move)) {
-                    System.out.println("Player 1 wins");
-                    return 0;
-                } else if ("r".equals(player_2_move)) {
-                    System.out.println("It's a tie!");
-                    return 2;
-                }
-                break;
-        }
-        return 0;
-    }
-
+    public final static Logger logger = Logger.getLogger(PaperScissorsRock.class.getName());
+    private static InputService inputService;
+    private static ResultsService resultsService;
+    private static PlayerService playerService;
+    private static PSRService psrService;
+    private static GameManager manager;
 
     public static void main(String[] args) {
-        PaperScissorsRock x = new PaperScissorsRock();
-        x.playTheGame();
+        initialize();
+        try {
+            boolean play = true;
+            GameContext context = manager.init();
+            while (play) {
+                manager.simulate(context);
+                logger.log(Level.INFO, "Do you wish to continue ? (y/n)");
+                play = inputService.readBoolean();
+            }
+            logger.log(Level.INFO, "Aggregate Results for all rounds:");
+            resultsService.aggregate(context);
+        } finally {
+            inputService.close();
+        }
+
+    }
+
+    private static void initialize() {
+        inputService = new ScannerInputService();
+        resultsService = new ResultPublisher();
+        playerService = new PlayerServiceImpl(inputService);
+        psrService = new PSRServiceImpl(inputService, resultsService);
+        manager = new GameManager(playerService, psrService);
     }
 }
